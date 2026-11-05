@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CAIO AI</title>
+    <!-- Подключаем Puter.js -->
+    <script src="https://js.puter.com/v2/"></script>
     <style>
         * {
             box-sizing: border-box;
@@ -152,6 +154,7 @@
             line-height: 1.6;
             font-size: 15px;
             color: #ececec;
+            white-space: pre-wrap; /* Чтобы сохранять переносы строк */
         }
 
         .message-wrapper.user .message-content {
@@ -228,7 +231,7 @@
 
     <!-- Левая панель -->
     <div class="sidebar">
-        <button class="new-chat-btn">
+        <button class="new-chat-btn" onclick="location.reload()">
             <span>+</span> Новый чат
         </button>
         
@@ -249,19 +252,11 @@
         
         <div class="chat-messages" id="chat-box">
             
-            <!-- Сообщение от пользователя -->
-            <div class="message-wrapper user">
-                <div class="msg-avatar user">K</div>
-                <div class="message-content">
-                    Привет, Кайо. Как обстановка?
-                </div>
-            </div>
-
-            <!-- Сообщение от ИИ -->
+            <!-- Приветственное сообщение от ИИ -->
             <div class="message-wrapper ai">
                 <div class="msg-avatar ai">C</div>
                 <div class="message-content">
-                    Привет. Я Кайо. Я один на вражеской территории. Жду приказа.
+                    Привет. Я Кайо. Я один на вражеской территории. Чем могу помочь?
                 </div>
             </div>
 
@@ -276,7 +271,7 @@
                 </button>
             </div>
             <div class="footer-text">
-                AI-generated, for reference only
+                Powered by Puter.js
             </div>
         </div>
 
@@ -290,10 +285,10 @@
             }
         }
 
-        function sendMessage() {
+        async function sendMessage() {
             let input = document.getElementById("user-input");
-            let text = input.value;
-            if (text.trim() === "") return;
+            let text = input.value.trim();
+            if (text === "") return;
 
             let chatBox = document.getElementById("chat-box");
             
@@ -309,36 +304,35 @@
             input.value = "";
             chatBox.scrollTop = chatBox.scrollHeight;
 
-            // Отправляем запрос на наш Python-сервер через LocalTunnel
-            fetch('https://upset-friends-sin.loca.lt/chat', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ message: text })
-            })
-            .then(response => response.json())
-            .then(data => {
-                let aiWrapper = document.createElement("div");
-                aiWrapper.className = "message-wrapper ai";
-                aiWrapper.innerHTML = `
-                    <div class="msg-avatar ai">C</div>
-                    <div class="message-content">${data.response}</div>
-                `;
-                chatBox.appendChild(aiWrapper);
-                chatBox.scrollTop = chatBox.scrollHeight;
-            })
-            .catch(error => {
-                console.error('Ошибка:', error);
-                let aiWrapper = document.createElement("div");
-                aiWrapper.className = "message-wrapper ai";
-                aiWrapper.innerHTML = `
-                    <div class="msg-avatar ai">C</div>
-                    <div class="message-content">Связь с мозгом потеряна. Проверь, запущен ли Python и LocalTunnel.</div>
-                `;
-                chatBox.appendChild(aiWrapper);
-                chatBox.scrollTop = chatBox.scrollHeight;
-            });
+            // Создаем "пузырь" для ответа ИИ (с индикатором загрузки)
+            let aiWrapper = document.createElement("div");
+            aiWrapper.className = "message-wrapper ai";
+            aiWrapper.innerHTML = `
+                <div class="msg-avatar ai">C</div>
+                <div class="message-content" id="ai-response-text">Думаю...</div>
+            `;
+            chatBox.appendChild(aiWrapper);
+            chatBox.scrollTop = chatBox.scrollHeight;
+
+            try {
+                // Обращаемся к Puter.js. 
+                // Модель можно поменять на 'openai/gpt-4o' или 'deepseek-chat' (если доступна)
+                const response = await puter.ai.chat(
+                    [
+                        { role: "system", content: "Ты — Кайо, одинокий солдат на вражеской территории. Отвечай мрачно, по-военному, но с бразильским вайбом. Ты помогаешь своему создателю с идеями для фильма 'Один в поле воин'." },
+                        { role: "user", content: text }
+                    ],
+                    { model: 'openai/gpt-4o' } 
+                );
+                
+                // Выводим ответ
+                document.getElementById("ai-response-text").innerText = response.message.content;
+            } catch (error) {
+                console.error(error);
+                document.getElementById("ai-response-text").innerText = "Связь с командованием потеряна. Ошибка: " + error.message;
+            }
+            
+            chatBox.scrollTop = chatBox.scrollHeight;
         }
     </script>
 </body>
