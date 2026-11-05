@@ -4,8 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CAIO AI</title>
-    <!-- Подключаем Puter.js -->
-    <script src="https://js.puter.com/v2/"></script>
     <style>
         * {
             box-sizing: border-box;
@@ -32,7 +30,6 @@
             display: flex;
             flex-direction: column;
             padding: 15px;
-            transition: all 0.3s;
         }
 
         .new-chat-btn {
@@ -246,7 +243,6 @@
             margin-top: 15px;
         }
         
-        /* Кастомный скроллбар */
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
@@ -255,27 +251,21 @@
 </head>
 <body>
 
-    <!-- Левая панель -->
     <div class="sidebar">
         <button class="new-chat-btn" onclick="startNewChat()">
             <span>+</span> Новый чат
         </button>
-        
         <div class="chat-history">
             <div class="history-item active">Текущая переписка</div>
         </div>
-
         <div class="user-profile">
             <div class="avatar">?</div>
             <span>Гость</span>
         </div>
     </div>
 
-    <!-- Основной чат -->
     <div class="main-chat">
-        
         <div class="chat-messages" id="chat-box">
-            <!-- Приветствие -->
             <div class="message-wrapper ai">
                 <div class="msg-avatar ai">C</div>
                 <div class="message-content">
@@ -284,30 +274,20 @@
             </div>
         </div>
 
-        <!-- Поле ввода -->
         <div class="input-container">
             <div class="input-box">
                 <input type="text" id="user-input" placeholder="Напиши сообщение..." onkeypress="handleKeyPress(event)">
-                <button class="send-btn" onclick="sendMessage()">
-                    ↑
-                </button>
+                <button class="send-btn" onclick="sendMessage()">↑</button>
             </div>
-            <div class="footer-text">
-                CAIO AI © 2026
-            </div>
+            <div class="footer-text">CAIO AI © 2026</div>
         </div>
-
     </div>
 
     <script>
-        // Массив для хранения истории диалога (чтобы ИИ помнил контекст)
-        let messageHistory = [
-            { role: "system", content: "Ты — Кайо, одинокий солдат на вражеской территории. Отвечай мрачно, по-военному, но с бразильским вайбом. Ты помогаешь своему создателю с идеями для фильма 'Один в поле воин' и другими вопросами. Отвечай кратко и по делу." }
-        ];
+        // История для контекста (пока простая)
+        let chatContext = "Ты — Кайо, одинокий солдат на вражеской территории. Отвечай мрачно, по-военному, но с бразильским вайбом. Ты помогаешь своему создателю с идеями для фильма 'Один в поле воин' и другими вопросами. Отвечай кратко и по делу. ";
 
-        // Функция очистки чата и памяти
         function startNewChat() {
-            // Очищаем экран
             const chatBox = document.getElementById("chat-box");
             chatBox.innerHTML = `
                 <div class="message-wrapper ai">
@@ -315,10 +295,7 @@
                     <div class="message-content">Привет. Я Кайо. Я один на вражеской территории. Чем могу помочь?</div>
                 </div>
             `;
-            // Очищаем память ИИ (оставляем только системный промпт)
-            messageHistory = [
-                { role: "system", content: "Ты — Кайо, одинокий солдат на вражеской территории. Отвечай мрачно, по-военному, но с бразильским вайбом. Ты помогаешь своему создателю с идеями для фильма 'Один в поле воин' и другими вопросами. Отвечай кратко и по делу." }
-            ];
+            chatContext = "Ты — Кайо, одинокий солдат на вражеской территории. Отвечай мрачно, по-военному, но с бразильским вайбом. Ты помогаешь своему создателю с идеями для фильма 'Один в поле воин' и другими вопросами. Отвечай кратко и по делу. ";
         }
 
         function handleKeyPress(event) {
@@ -334,7 +311,7 @@
 
             let chatBox = document.getElementById("chat-box");
             
-            // Добавляем сообщение пользователя на экран
+            // Сообщение пользователя
             let userWrapper = document.createElement("div");
             userWrapper.className = "message-wrapper user";
             userWrapper.innerHTML = `
@@ -343,13 +320,13 @@
             `;
             chatBox.appendChild(userWrapper);
             
-            // Добавляем в память
-            messageHistory.push({ role: "user", content: text });
+            // Добавляем в контекст
+            chatContext += `\nПользователь: ${text}\nКайо:`;
             
             input.value = "";
             chatBox.scrollTop = chatBox.scrollHeight;
 
-            // Создаем ответ ИИ (загрузка)
+            // Индикатор загрузки
             let aiWrapper = document.createElement("div");
             aiWrapper.className = "message-wrapper ai";
             aiWrapper.innerHTML = `
@@ -360,18 +337,28 @@
             chatBox.scrollTop = chatBox.scrollHeight;
 
             try {
-                // Отправляем ВСЮ историю в Puter
-                const response = await puter.ai.chat(messageHistory, { model: 'openai/gpt-4o' });
+                // Запрос к абсолютно бесплатному API Pollinations.ai (без ключей)
+                // Мы отправляем весь контекст, чтобы он помнил разговор
+                const encodedPrompt = encodeURIComponent(chatContext);
+                const response = await fetch(`https://text.pollinations.ai/${encodedPrompt}`);
                 
-                let aiText = response.message.content;
+                if (!response.ok) {
+                    throw new Error("Сервер перегружен. Попробуй еще раз.");
+                }
+
+                let aiText = await response.text();
+                
+                // Очищаем ответ от возможного мусора
+                aiText = aiText.replace(/Кайо:/g, "").trim();
+                
                 document.getElementById("ai-response-text").innerText = aiText;
                 
-                // Сохраняем ответ ИИ в память
-                messageHistory.push({ role: "assistant", content: aiText });
+                // Сохраняем ответ в контекст
+                chatContext += ` ${aiText}\n`;
                 
             } catch (error) {
                 console.error(error);
-                document.getElementById("ai-response-text").innerText = "Связь с командованием потеряна. Ошибка: " + error.message;
+                document.getElementById("ai-response-text").innerText = "Связь потеряна. Ошибка: " + error.message;
             }
             
             chatBox.scrollTop = chatBox.scrollHeight;
