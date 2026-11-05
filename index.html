@@ -253,7 +253,7 @@
             <div class="message-wrapper user">
                 <div class="msg-avatar user">K</div>
                 <div class="message-content">
-                    не то сделай такой
+                    Привет, Кайо. Как обстановка?
                 </div>
             </div>
 
@@ -261,7 +261,7 @@
             <div class="message-wrapper ai">
                 <div class="msg-avatar ai">C</div>
                 <div class="message-content">
-                    Я понял! Теперь я выгляжу как DeepSeek. Чем займемся, Кайо?
+                    Привет. Я Кайо. Я один на вражеской территории. Жду приказа.
                 </div>
             </div>
 
@@ -283,6 +283,7 @@
     </div>
 
     <script>
+        // Отправка по нажатию на Enter
         function handleKeyPress(event) {
             if (event.key === "Enter") {
                 sendMessage();
@@ -308,26 +309,36 @@
             input.value = "";
             chatBox.scrollTop = chatBox.scrollHeight;
 
-            // Имитация ответа от ИИ
-            setTimeout(() => {
+            // Отправляем запрос на наш Python-сервер через LocalTunnel
+            fetch('https://upset-friends-sin.loca.lt/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ message: text })
+            })
+            .then(response => response.json())
+            .then(data => {
                 let aiWrapper = document.createElement("div");
                 aiWrapper.className = "message-wrapper ai";
-                
-                let responses = [
-                    "Я пока учусь. Мой мозг на Python еще не подключен к этому сайту.",
-                    "Смотрю на этот интерфейс. Выглядит знакомо.",
-                    "Скоро я смогу отвечать умнее. Надо связать меня с сервером.",
-                    "Приказ принят. Ожидаю дальнейших инструкций, Кайо."
-                ];
-                let randomResponse = responses[Math.floor(Math.random() * responses.length)];
-                
                 aiWrapper.innerHTML = `
                     <div class="msg-avatar ai">C</div>
-                    <div class="message-content">${randomResponse}</div>
+                    <div class="message-content">${data.response}</div>
                 `;
                 chatBox.appendChild(aiWrapper);
                 chatBox.scrollTop = chatBox.scrollHeight;
-            }, 1000);
+            })
+            .catch(error => {
+                console.error('Ошибка:', error);
+                let aiWrapper = document.createElement("div");
+                aiWrapper.className = "message-wrapper ai";
+                aiWrapper.innerHTML = `
+                    <div class="msg-avatar ai">C</div>
+                    <div class="message-content">Связь с мозгом потеряна. Проверь, запущен ли Python и LocalTunnel.</div>
+                `;
+                chatBox.appendChild(aiWrapper);
+                chatBox.scrollTop = chatBox.scrollHeight;
+            });
         }
     </script>
 </body>
